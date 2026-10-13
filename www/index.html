@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MCQ Shuffler</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0e7c86">
+<style>
+:root{--ink:#10243a;--mute:#5d6f80;--line:#d3dde5;--bg:#eef3f6;--card:#fff;--teal:#0e7c86;--tealbg:#dff3f1;--bad:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px 14px 110px}
+h1{margin:6px 0 2px;font-size:1.6rem;font-weight:800;letter-spacing:-.02em}
+.sub{margin:0 0 14px;color:var(--mute)}
+button{font:600 15px system-ui;border-radius:10px;padding:10px 16px;border:1px solid var(--teal);background:var(--teal);color:#fff;cursor:pointer}
+button.ghost{background:#fff;color:var(--teal)}
+button.danger{color:var(--bad);border-color:#e5b9b5}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #8fd3d8;outline-offset:2px}
+input[type=text],textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:16px system-ui;background:#fff;color:var(--ink)}
+textarea{resize:vertical}
+.top{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:0 0 12px}
+.chead{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.chead button{padding:6px 10px;font-size:13px}
+.spacer{flex:1}
+.opt{margin:6px 0;border:1px solid var(--line);border-radius:10px;padding:6px 8px;transition:background .15s}
+.opt.ok{background:var(--tealbg);border-color:var(--teal)}
+.line{display:flex;gap:8px;align-items:center}
+.line input[type=radio]{width:20px;height:20px;accent-color:var(--teal);flex:none}
+.letter{font-weight:800;width:18px;flex:none;color:var(--teal)}
+.line input[type=text]{border:0;background:transparent;padding:6px 4px}
+.line button{padding:5px 9px;font-size:13px;flex:none}
+.thumb{position:relative;display:inline-block;margin:6px 0}
+.thumb img{display:block;max-height:110px;max-width:100%;border-radius:8px;border:1px solid var(--line)}
+.thumb button{position:absolute;top:4px;right:4px;padding:2px 8px;font-size:12px;background:#fff;color:var(--bad);border-color:#e5b9b5}
+.thumb.sm img{max-height:44px}
+.foot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:14px;color:var(--mute)}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fffffff2;border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px))}
+.bar div{max-width:720px;margin:0 auto;display:flex;gap:8px;align-items:center}
+.bar .count{color:var(--mute);font-size:14px;margin-left:auto;white-space:nowrap}
+.err{background:#fdeceb;border:1px solid #f0b3ae;color:#7f1912;border-radius:10px;padding:8px 12px;margin:0 0 8px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.sheet{background:#fff;border:1px solid var(--line);border-radius:6px;padding:22px 20px}
+.sheet h2{margin:0 0 4px;font-size:1.35rem}
+.meta{color:var(--mute);margin:0 0 16px;border-bottom:2px solid var(--ink);padding-bottom:10px}
+.pq{margin:0 0 14px;break-inside:avoid}
+.pq .qt{font-weight:700;margin-bottom:4px}
+.po{padding:1px 0 1px 14px}
+.qimg{display:block;max-width:100%;max-height:230px;margin:6px 0}
+.oimg{display:inline-block;vertical-align:middle;max-height:90px;max-width:60%;margin-left:6px}
+.key{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chips span{background:var(--tealbg);border-radius:8px;padding:4px 10px;font-weight:700}
+.chips small{font-weight:500;color:var(--mute)}
+.note{color:var(--mute);font-size:14px}
+.sechead{display:flex;align-items:baseline;gap:10px;margin:24px 0 4px}
+.sechead h2{margin:0;font-size:1.2rem}
+.badge{color:var(--mute);font-size:.9rem}
+.addbtn{width:100%;margin:2px 0 6px}
+.tab{background:#fff;color:var(--ink);border:1px solid var(--line);white-space:nowrap}
+.tab.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.note2{color:var(--mute);font-size:.92rem;margin:0 0 10px}
+h3.sec{margin:20px 0 2px;font-size:1.05rem}
+.hint{color:var(--mute);margin:0 0 10px;font-size:.92rem}
+@media print{
+  body{background:#fff}.noprint,.bar{display:none!important}
+  main{padding:0;max-width:none}.sheet,.key{border:0;padding:0}
+  body[data-print=paper] #keybox{display:none}
+  body[data-print=key] #sheet{display:none}
+}
+</style>
+</head>
+<body>
+<main>
+  <section id="builder">
+    <div class="top">
+      <img src="icon.svg" alt="" width="52" height="52" style="flex:none"><div style="flex:1"><h1>MCQ Shuffler</h1><p class="sub" style="margin:0">Fill the MCQs, then the short and long questions below.</p></div>
+      <button class="ghost" id="sample">Load samples</button>
+      <button class="ghost danger" id="reset">Start over</button>
+    </div>
+    <div id="errors"></div>
+    <input type="text" id="title" dir="auto" placeholder="Test title (optional), e.g. Biology Chapter 3" style="margin-bottom:12px">
+    <div id="cards"></div>
+  </section>
+
+  <section id="preview" hidden>
+    <div class="tools noprint">
+      <button class="ghost" id="edit">Edit questions</button>
+      <button id="again">Shuffle again</button>
+      <button class="ghost" id="printPaper">Print paper</button>
+      <button class="ghost" id="printKey">Print answer key</button>
+      <button class="ghost" id="copy">Copy as text</button>
+    </div>
+    <div class="sheet" id="sheet"></div>
+    <div class="key" id="keybox"></div>
+  </section>
+</main>
+
+<div class="bar noprint" id="bar"><div>
+  <button id="go">Shuffle</button>
+  <span class="count" id="count"></span>
+</div></div>
+
+<script>
+const MIN=5, MAX=20, MAXO=6, MAXS=100, KEY="mcq-shuffler-v3", OLD="mcq-shuffler-v2", L="ABCDEF";
+const $=id=>document.getElementById(id);
+const blankOpt=()=>({text:"",img:""});
+const blankQ=()=>({text:"",img:"",opts:[blankOpt(),blankOpt(),blankOpt(),blankOpt()],correct:0,fixed:false});
+const blankS=()=>({text:"",img:""});
+let qs=null, title="", shortQs=null, longQs=null, tab="mcq";
+try{
+  const s=JSON.parse(localStorage.getItem(KEY)||"null");
+  if(s){qs=s.qs;title=s.title||"";shortQs=s.shortQs;longQs=s.longQs;}
+  else{const o=JSON.parse(localStorage.getItem(OLD)||"null");
+    if(o&&Array.isArray(o.qs)){qs=o.qs;title=o.title||"";}}
+}catch(e){}
+if(!Array.isArray(qs)||!qs.length)qs=Array.from({length:MIN},blankQ);
+if(!Array.isArray(shortQs)||!shortQs.length)shortQs=[blankS()];
+if(!Array.isArray(longQs)||!longQs.length)longQs=[blankS()];
+$("title").value=title;
+let timer; function save(){updateCounts();clearTimeout(timer);timer=setTimeout(()=>{
+  try{localStorage.setItem(KEY,JSON.stringify({qs,title,shortQs,longQs}));}catch(e){}},400);}
+
+function h(tag,props,...kids){const e=document.createElement(tag);Object.assign(e,props||{});
+  kids.forEach(k=>e.append(k));return e;}
+
+function pickImage(max,cb){
+  const f=h("input",{type:"file",accept:"image/*"});
+  f.onchange=()=>{const file=f.files[0];if(!file)return;
+    const r=new FileReader();
+    r.onload=()=>{const im=new Image();
+      im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height));
+        const c=h("canvas",{width:Math.round(im.width*s),height:Math.round(im.height*s)});
+        const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);
+        x.drawImage(im,0,0,c.width,c.height);cb(c.toDataURL("image/jpeg",0.78));};
+      im.src=r.result;};
+    r.readAsDataURL(file);};
+  f.click();
+}
+
+function thumb(obj,small){
+  return h("span",{className:"thumb"+(small?" sm":"")},
+    h("img",{src:obj.img,alt:"picture"}),
+    h("button",{textContent:"Remove",title:"Remove picture",onclick:()=>{obj.img="";render();}}));
+}
+
+function card(q,i){
+  const c=h("section",{className:"card"});
+  c.append(h("div",{className:"chead"},
+    h("strong",{textContent:"Question "+(i+1)}),h("span",{className:"spacer"}),
+    h("button",{className:"ghost",textContent:"Duplicate",disabled:qs.length>=MAX,
+      onclick:()=>{qs.splice(i+1,0,JSON.parse(JSON.stringify(q)));render();}}),
+    h("button",{className:"ghost danger",textContent:"Delete",disabled:qs.length<=MIN,
+      onclick:()=>{qs.splice(i,1);render();}})));
+  c.append(h("textarea",{rows:2,dir:"auto",placeholder:"Type the question",value:q.text,
+    oninput:e=>{q.text=e.target.value;save();}}));
+  c.append(q.img?h("div",{},thumb(q)):h("div",{style:"margin:6px 0"},
+    h("button",{className:"ghost",textContent:"Add picture to question",
+      onclick:()=>pickImage(900,d=>{q.img=d;render();})})));
+  q.opts.forEach((o,j)=>{
+    const row=h("div",{className:"opt"+(q.correct===j?" ok":"")});
+    const line=h("div",{className:"line"},
+      h("input",{type:"radio",name:"c"+i,checked:q.correct===j,title:"This is the correct answer",
+        onchange:()=>{q.correct=j;c.querySelectorAll(".opt").forEach((el,k)=>el.classList.toggle("ok",k===j));save();}}),
+      h("span",{className:"letter",textContent:L[j]}),
+      h("input",{type:"text",dir:"auto",placeholder:"Option "+L[j],value:o.text,
+        oninput:e=>{o.text=e.target.value;save();}}));
+    if(o.img) line.append(thumb(o,true));
+    else line.append(h("button",{className:"ghost",textContent:"Picture",
+      onclick:()=>pickImage(400,d=>{o.img=d;render();})}));
+    line.append(h("button",{className:"ghost danger",textContent:"✕",title:"Remove option",
+      disabled:q.opts.length<=2,onclick:()=>{
+        q.opts.splice(j,1);
+        if(q.correct===j)q.correct=0;else if(q.correct>j)q.correct--;render();}}));
+    row.append(line);c.append(row);
+  });
+  c.append(h("div",{className:"foot"},
+    h("button",{className:"ghost",textContent:"+ Add option",disabled:q.opts.length>=MAXO,
+      onclick:()=>{q.opts.push(blankOpt());render();}}),
+    h("label",{},h("input",{type:"checkbox",checked:q.fixed,
+      onchange:e=>{q.fixed=e.target.checked;save();}})," Keep options in this order (for \"All of the above\")")));
+  return c;
+}
+
+function filled(list){return list.filter(q=>String(q.text||"").trim()||q.img);}
+function updateCounts(){
+  const a=qs.filter(q=>!isBlankQ(q)).length,b=filled(shortQs).length,c=filled(longQs).length;
+  const set=(id,t)=>{const e=$("hc-"+id);if(e)e.textContent=t;};
+  set("mcq",a+" filled, max "+MAX);set("short",b+" filled");set("long",c+" filled");
+  $("count").textContent=a+" MCQs · "+b+" short · "+c+" long";
+}
+function subCard(list,i,kind){
+  const q=list[i],c=h("section",{className:"card"});
+  c.append(h("div",{className:"chead"},
+    h("strong",{textContent:"Question "+(i+1)}),h("span",{className:"spacer"}),
+    h("button",{className:"ghost",textContent:"Duplicate",disabled:list.length>=MAXS,
+      onclick:()=>{list.splice(i+1,0,JSON.parse(JSON.stringify(q)));render();}}),
+    h("button",{className:"ghost danger",textContent:"Delete",disabled:list.length<=1,
+      onclick:()=>{list.splice(i,1);render();}})));
+  c.append(h("textarea",{rows:kind==="long"?4:2,dir:"auto",placeholder:"Type the question",value:q.text,
+    oninput:e=>{q.text=e.target.value;save();}}));
+  c.append(q.img?h("div",{},thumb(q)):h("div",{style:"margin:6px 0"},
+    h("button",{className:"ghost",textContent:"Add picture to question",
+      onclick:()=>pickImage(900,d=>{q.img=d;render();})})));
+  return c;
+}
+function sectionBlock(id,label,note,list,max,build,addLabel,blank){
+  const wrap=h("section",{});
+  wrap.append(h("div",{className:"sechead"},h("h2",{textContent:label}),h("span",{className:"badge",id:"hc-"+id})),
+    h("p",{className:"note2",textContent:note}));
+  list.forEach((q,i)=>wrap.append(build(list,i)));
+  wrap.append(h("button",{className:"ghost addbtn",textContent:addLabel,disabled:list.length>=max,
+    onclick:()=>{list.push(blank());render();}}));
+  return wrap;
+}
+function render(){
+  const box=$("cards");box.innerHTML="";
+  box.append(
+    sectionBlock("mcq","Multiple choice questions","Tick the correct option on each card. Leave every MCQ card empty if this paper has no MCQs.",qs,MAX,(l,i)=>card(l[i],i),"+ Add MCQ",blankQ),
+    sectionBlock("short","Short questions","Only the question. Students write the answers themselves.",shortQs,MAXS,(l,i)=>subCard(l,i,"short"),"+ Add short question",blankS),
+    sectionBlock("long","Long questions","Only the question. Students write the answers themselves.",longQs,MAXS,(l,i)=>subCard(l,i,"long"),"+ Add long question",blankS));
+  save();
+}
+
+function showErrors(list){
+  const e=$("errors");e.innerHTML="";
+  list.forEach(m=>e.append(h("div",{className:"err",textContent:m})));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function item(text,img,cls,icls){
+  const d=h("div",{className:cls});
+  if(text) d.append(h("span",{dir:"auto",textContent:text}));
+  if(img) d.append(h("img",{className:icls,src:img,alt:""}));
+  return d;
+}
+
+function showPaper(data){
+  lastPaper=data.paper;lastShort=data.short;lastLong=data.long;
+  const s=$("sheet");s.innerHTML="";
+  s.append(h("h2",{dir:"auto",textContent:$("title").value.trim()||"Test paper"}),
+    h("p",{className:"meta",textContent:"Name: ______________________   Roll no: ________   Date: ____________"}));
+  let sec=0;
+  const head=(name,hint)=>s.append(h("h3",{className:"sec",textContent:"Section "+"ABC"[sec++]+": "+name}),
+    h("p",{className:"hint",textContent:hint}));
+  if(data.paper.length){
+    head("Multiple Choice Questions","Choose the correct answer.");
+    data.paper.forEach((q,i)=>{
+      const d=h("div",{className:"pq"});
+      d.append(item((i+1)+". "+q.text,q.img,"qt","qimg"));
+      q.options.forEach((o,j)=>d.append(item(L[j]+") "+o.text,o.img,"po","oimg")));
+      s.append(d);});
+  }
+  const subj=(list,name,hint)=>{
+    if(!list.length)return;
+    head(name,hint);
+    list.forEach((q,i)=>{
+      const d=h("div",{className:"pq"});
+      d.append(item((i+1)+". "+q.text,q.img,"qt","qimg"));
+      s.append(d);});
+  };
+  subj(data.short,"Short Questions","Answer briefly.");
+  subj(data.long,"Long Questions","Answer in detail.");
+  const k=$("keybox");k.innerHTML="";k.hidden=!data.paper.length;
+  if(data.paper.length){
+    k.append(h("strong",{textContent:"Answer key (MCQs)"}));
+    const chips=h("div",{className:"chips"});
+    data.paper.forEach((q,i)=>chips.append(h("span",{},h("small",{textContent:(i+1)+" "}),q.answer)));
+    k.append(chips,h("div",{className:"note noprint",textContent:
+      "Spread: "+Object.entries(data.stats.counts).map(([a,b])=>a+" "+b).join(", ")+
+      ". Longest same-letter run: "+data.stats.longest_run+"."}));
+  }
+  const native=!!window.Capacitor;
+  $("printPaper").hidden=native;$("printKey").hidden=native||!data.paper.length;
+  $("builder").hidden=true;$("bar").hidden=true;$("preview").hidden=false;
+  window.scrollTo({top:0});
+}
+
+
+// ENGINE START (runs on the phone, no server)
+const IMG_OK=/^data:image\/(jpeg|png|webp|gif);base64,/;
+function isBlankQ(q){return !String(q.text||"").trim()&&!q.img&&!(q.opts||[]).some(o=>String(o.text||"").trim()||o.img);}
+function cleanQs(raw){
+  const used=raw.map((q,idx)=>({q,idx})).filter(x=>!isBlankQ(x.q));
+  if(!used.length)return {out:[],errors:[]};
+  if(used.length<MIN||used.length>MAX)return {out:[],errors:[`MCQs: use ${MIN} to ${MAX} questions (you filled ${used.length}), or leave every MCQ card empty to skip this section.`]};
+  const errors=[],out=[];
+  used.forEach(({q,idx})=>{const i=idx+1;
+    const text=String(q.text||"").trim().slice(0,1000),img=IMG_OK.test(q.img||"")?q.img:"";
+    if(!text&&!img){errors.push(`Question ${i}: type the question or add a picture.`);return;}
+    const opts=[];let right=null;
+    (q.opts||[]).forEach((o,j)=>{
+      const ot=String(o.text||"").trim().slice(0,500),oi=IMG_OK.test(o.img||"")?o.img:"";
+      if(!ot&&!oi)return;
+      if(j===q.correct)right=opts.length;
+      opts.push({text:ot,img:oi});});
+    if(right===null)errors.push(`Question ${i}: tick the correct option and fill it in.`);
+    else if(opts.length<2||opts.length>MAXO)errors.push(`Question ${i}: needs 2 to ${MAXO} options.`);
+    else out.push({text,img,opts,correct:right,fixed:!!q.fixed});});
+  return {out,errors};
+}
+function badStep(seq,p,level){
+  const n=seq.length;
+  if(n>=2&&seq[n-1]===seq[n-2]&&seq[n-1]===p)return true;                       // C, C, C
+  if(level>=1&&n>=2&&p!==seq[n-1]&&seq[n-1]-seq[n-2]===p-seq[n-1])return true;   // A,B,C / D,C,B
+  if(level>=1&&n>=3&&seq[n-3]===seq[n-1]&&seq[n-2]===p&&p!==seq[n-1])return true; // A,B,A,B
+  return false;
+}
+function makePositions(sizes,forced){
+  const n=sizes.length,kmax=Math.max(...sizes),cap=Math.ceil(n/kmax)+1;
+  for(const level of [1,0]){
+    for(let t=0;t<30;t++){
+      const seq=[],counts=new Array(kmax).fill(0);let steps=0;
+      const dfs=()=>{
+        if(seq.length===n)return true;
+        if(++steps>5000)return false;
+        const k=seq.length;
+        const cands=forced[k]!==null?[forced[k]]:[...Array(sizes[k]).keys()];
+        const key=new Map(cands.map(p=>[p,Math.random()*2+counts[p]*0.7]));
+        cands.sort((a,b)=>key.get(a)-key.get(b));
+        for(const p of cands){
+          if(counts[p]>=cap||badStep(seq,p,level))continue;
+          seq.push(p);counts[p]++;
+          if(dfs())return true;
+          seq.pop();counts[p]--;}
+        return false;};
+      if(dfs())return seq;}}
+  return sizes.map((s,i)=>forced[i]!==null?forced[i]:Math.floor(Math.random()*s));
+}
+function shufflePaper(list){
+  const forced=list.map(q=>q.fixed?q.correct:null);
+  const pos=makePositions(list.map(q=>q.opts.length),forced);
+  return list.map((q,i)=>{
+    let opts;
+    if(q.fixed)opts=q.opts.slice();
+    else{
+      const right=q.opts[q.correct],wrong=q.opts.filter((_,j)=>j!==q.correct);
+      for(let a=wrong.length-1;a>0;a--){const b=Math.floor(Math.random()*(a+1));[wrong[a],wrong[b]]=[wrong[b],wrong[a]];}
+      wrong.splice(pos[i],0,right);opts=wrong;}
+    return {text:q.text,img:q.img,options:opts,answer:L[pos[i]]};});
+}
+function statsOf(paper){
+  const key=paper.map(p=>p.answer);let longest=1,run=1;
+  for(let i=1;i<key.length;i++){run=key[i]===key[i-1]?run+1:1;longest=Math.max(longest,run);}
+  const counts={};key.forEach(k=>counts[k]=(counts[k]||0)+1);
+  return {counts,longest_run:longest};
+}
+// ENGINE END
+let lastPaper=[],lastShort=[],lastLong=[];
+function shuffle(){
+  $("errors").innerHTML="";
+  const {out,errors}=cleanQs(qs);
+  const sh=filled(shortQs),lg=filled(longQs);
+  if(!errors.length&&!out.length&&!sh.length&&!lg.length)errors.push("Add at least one question first.");
+  if(errors.length){showErrors(errors);return false;}
+  const paper=out.length?shufflePaper(out):[];
+  showPaper({paper,stats:statsOf(paper),short:sh,long:lg});return true;
+}
+function copyText(){
+  const rows=[],t=$("title").value.trim();if(t)rows.push(t,"");
+  let sec=0;const head=n=>rows.push("Section "+"ABC"[sec++]+": "+n,"");
+  if(lastPaper.length){
+    head("Multiple Choice Questions");
+    lastPaper.forEach((q,i)=>{rows.push((i+1)+". "+(q.text||"(see picture)"));
+      q.options.forEach((o,j)=>rows.push(L[j]+") "+(o.text||"(picture)")));rows.push("");});
+  }
+  [[lastShort,"Short Questions"],[lastLong,"Long Questions"]].forEach(([list,name])=>{
+    if(!list.length)return;
+    head(name);list.forEach((q,i)=>rows.push((i+1)+". "+(q.text||"(see picture)"),""));});
+  if(lastPaper.length)rows.push("Answer key: "+lastPaper.map((q,i)=>(i+1)+"-"+q.answer).join("  "));
+  const txt=rows.join("\\n");
+  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(
+    ()=>alert("Copied. Paste it into WhatsApp or Word."),()=>alert("Could not copy on this device."));
+}
+if(window.Capacitor){["printPaper","printKey"].forEach(id=>$(id).hidden=true);}
+
+function printMode(m){document.body.dataset.print=m;window.print();}
+window.onafterprint=()=>{delete document.body.dataset.print;};
+
+$("title").oninput=e=>{title=e.target.value;save();};
+$("go").onclick=shuffle;
+$("again").onclick=shuffle;
+$("edit").onclick=()=>{$("preview").hidden=true;$("builder").hidden=false;$("bar").hidden=false;};
+$("printPaper").onclick=()=>printMode("paper");
+$("printKey").onclick=()=>printMode("key");
+$("copy").onclick=copyText;
+$("reset").onclick=()=>{if(confirm("Delete all questions and start over?")){
+  qs=Array.from({length:MIN},blankQ);shortQs=[blankS()];longQs=[blankS()];tab="mcq";title="";$("title").value="";$("errors").innerHTML="";render();}};
+
+const SAMPLE=[
+["What is the capital of Pakistan?","Islamabad","Lahore","Karachi","Multan"],
+["How many days are in a leap year?","366","365","364","360"],
+["Which planet is known as the Red Planet?","Mars","Venus","Jupiter","Saturn"],
+["What is H2O commonly called?","Water","Hydrogen","Oxygen","Salt"],
+["Which is the largest ocean?","Pacific","Atlantic","Indian","Arctic"],
+["Who wrote the national anthem of Pakistan?","Hafeez Jalandhari","Allama Iqbal","Faiz Ahmed Faiz","Ahmed Faraz"],
+["How many sides does a hexagon have?","6","5","7","8"],
+["Which gas do plants take in for photosynthesis?","Carbon dioxide","Oxygen","Nitrogen","Hydrogen"],
+["What is the square root of 144?","12","14","11","13"],
+["Which is the longest river in Pakistan?","Indus","Jhelum","Ravi","Chenab"],
+["How many continents are there?","7","5","6","8"],
+["Which organ pumps blood in the human body?","Heart","Liver","Lungs","Kidney"],
+["What is the freezing point of water?","0°C","10°C","32°C","100°C"],
+["Which is the smallest prime number?","2","1","3","0"],
+["Who is known as the founder of Pakistan?","Quaid-e-Azam Muhammad Ali Jinnah","Liaquat Ali Khan","Allama Iqbal","Sir Syed Ahmad Khan"],
+["Which metal is liquid at room temperature?","Mercury","Iron","Copper","Gold"],
+["How many hours are there in a week?","168","148","156","172"],
+["Which is the highest mountain in the world?","Mount Everest","K2","Kangchenjunga","Nanga Parbat"],
+["What is the plural of \"child\"?","Children","Childs","Childes","Childrens"],
+["Which of these are fruits?","Apple","Mango","Banana","All of the above"]
+];
+$("sample").onclick=()=>{
+  const has=qs.some(q=>!isBlankQ(q))||filled(shortQs).length||filled(longQs).length;
+  if(has&&!confirm("Replace your current questions with the samples?"))return;
+  qs=SAMPLE.map((r,i)=>i===19
+    ?{text:r[0],img:"",opts:[r[1],r[2],r[3],r[4]].map(t=>({text:t,img:""})),correct:3,fixed:true}
+    :{text:r[0],img:"",opts:r.slice(1).map(t=>({text:t,img:""})),correct:0,fixed:false});
+  shortQs=["Define photosynthesis.","Write a short note on the water cycle.","What is the difference between a prime number and a composite number?"].map(t=>({text:t,img:""}));
+  longQs=["Describe the main events that led to the creation of Pakistan.","Explain the process of photosynthesis in detail."].map(t=>({text:t,img:""}));
+  $("title").value=title="Sample test";$("errors").innerHTML="";tab="mcq";render();window.scrollTo({top:0});
+};
+render();
+</script>
+</body>
+</html>
