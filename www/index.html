@@ -92,6 +92,8 @@ h3.sec{margin:20px 0 2px;font-size:1.05rem}
       <button id="again">Shuffle again</button>
       <button class="ghost" id="printPaper">Print paper</button>
       <button class="ghost" id="printKey">Print answer key</button>
+      <button class="ghost" id="pdfPaper">Save paper PDF</button>
+      <button class="ghost" id="pdfKey">Save answer key PDF</button>
       <button class="ghost" id="copy">Copy as text</button>
     </div>
     <div class="sheet" id="sheet"></div>
@@ -104,6 +106,7 @@ h3.sec{margin:20px 0 2px;font-size:1.05rem}
   <span class="count" id="count"></span>
 </div></div>
 
+<script src="jspdf.umd.min.js"></script>
 <script>
 const MIN=5, MAX=20, MAXO=6, MAXS=100, KEY="mcq-shuffler-v3", OLD="mcq-shuffler-v2", L="ABCDEF";
 const $=id=>document.getElementById(id);
@@ -274,7 +277,7 @@ function showPaper(data){
       ". Longest same-letter run: "+data.stats.longest_run+"."}));
   }
   const native=!!window.Capacitor;
-  $("printPaper").hidden=native;$("printKey").hidden=native||!data.paper.length;
+  $("printPaper").hidden=native;$("printKey").hidden=native||!data.paper.length;$("pdfKey").hidden=!data.paper.length;
   $("builder").hidden=true;$("bar").hidden=true;$("preview").hidden=false;
   window.scrollTo({top:0});
 }
@@ -386,7 +389,114 @@ $("again").onclick=shuffle;
 $("edit").onclick=()=>{$("preview").hidden=true;$("builder").hidden=false;$("bar").hidden=false;};
 $("printPaper").onclick=()=>printMode("paper");
 $("printKey").onclick=()=>printMode("key");
+// ---- PDF export (works offline, no server) ----
+function pdfClean(s){
+  return String(s==null?"":s).replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"')
+    .replace(/[\u2013\u2014]/g,"-").replace(/\u2026/g,"...").replace(/\u2022/g,"-")
+    .replace(/[^\n\u0020-\u007E\u00A0-\u00FF]/g,"?");
+}
+function pdfHasUnsupported(d){
+  const all=[d.title];
+  (d.paper||[]).forEach(q=>{all.push(q.text);q.options.forEach(o=>all.push(o.text));});
+  (d.short||[]).concat(d.long||[]).forEach(q=>all.push(q.text));
+  return all.some(t=>/[^\n\u0020-\u007E\u00A0-\u00FF\u2018\u2019\u201C\u201D\u2013\u2014\u2026\u2022]/.test(String(t||"")));
+}
+function makePdf(JsPDF,d){
+  const doc=new JsPDF({unit:"mm",format:"a4"});
+  const W=210,H=297,M=16,TW=W-2*M,BOT=H-18;
+  let y=M;
+  doc.setLineHeightFactor(1.25);
+  const LH=s=>s*0.3528*1.25;
+  const font=(size,style)=>{doc.setFont("helvetica",style||"normal");doc.setFontSize(size);};
+  const wrap=(t,w,size,style)=>{font(size,style);return doc.splitTextToSize(pdfClean(t),w);};
+  const fit=(src,maxW,maxH)=>{const p=doc.getImageProperties(src);const k=Math.min(maxW/p.width,maxH/p.height);
+    return {w:p.width*k,h:p.height*k,type:p.fileType};};
+  const put=(ls,x,size,style,color)=>{font(size,style);doc.setTextColor(color||0);doc.text(ls,x,y,{baseline:"top"});y+=ls.length*LH(size);doc.setTextColor(0);};
+  const room=h=>{if(y+h>BOT){doc.addPage();y=M;}};
+  const title=pdfClean(d.title||"").trim();
+
+  if(d.kind==="key"){
+    font(16,"bold");doc.text(title||"Test paper",W/2,y,{align:"center",baseline:"top"});y+=9;
+    font(12,"normal");doc.text("Answer key",W/2,y,{align:"center",baseline:"top"});y+=9;
+    doc.setDrawColor(40);doc.line(M,y,W-M,y);y+=6;
+    const per=8,cw=TW/per,ch=9;
+    (d.paper||[]).forEach((q,i)=>{
+      const col=i%per;
+      if(col===0)room(ch+1);
+      const x=M+col*cw;
+      doc.setDrawColor(190);doc.rect(x,y,cw,ch);
+      font(11,"bold");doc.text((i+1)+" - "+q.answer,x+cw/2,y+ch/2,{align:"center",baseline:"middle"});
+      if(col===per-1||i===d.paper.length-1)y+=ch;
+    });
+    if(!(d.paper||[]).length){font(11,"normal");doc.text("This paper has no multiple choice questions.",M,y,{baseline:"top"});}
+  }else{
+    font(16,"bold");doc.text(wrap(title||"Test paper",TW,16,"bold"),W/2,y,{align:"center",baseline:"top"});
+    y+=wrap(title||"Test paper",TW,16,"bold").length*LH(16)+2;
+    font(10,"normal");doc.text("Name: ______________________    Roll no: ________    Date: ____________",M,y,{baseline:"top"});y+=7;
+    doc.setDrawColor(40);doc.line(M,y,W-M,y);y+=5;
+    let sec=0;
+    const head=(name,hint)=>{room(16);put([ "Section "+"ABC"[sec++]+": "+name ],M,12,"bold");put([hint],M,9.5,"italic",90);y+=2;};
+    const block=(n,q,opts)=>{
+      const qLines=wrap(n+". "+(q.text||""),TW,11,"bold");
+      const qi=q.img?fit(q.img,110,62):null;
+      let h=qLines.length*LH(11)+(qi?qi.h+2:0)+3;
+      const oBlocks=(opts||[]).map((o,j)=>{
+        const ls=wrap("ABCDEF"[j]+") "+(o.text||""),TW-8,10.5);
+        const oi=o.img?fit(o.img,48,24):null;
+        h+=ls.length*LH(10.5)+(oi?oi.h+1:0)+0.8;return {ls,oi,src:o.img};});
+      room(Math.min(h,BOT-M));
+      put(qLines,M,11,"bold");
+      if(qi){doc.addImage(q.img,qi.type,M,y,qi.w,qi.h);y+=qi.h+2;}
+      oBlocks.forEach(b=>{
+        put(b.ls,M+8,10.5);
+        if(b.oi){doc.addImage(b.src,b.oi.type,M+8,y,b.oi.w,b.oi.h);y+=b.oi.h+1;}
+        y+=0.8;});
+      y+=3;
+    };
+    if((d.paper||[]).length){
+      head("Multiple Choice Questions","Choose the correct answer.");
+      d.paper.forEach((q,i)=>{
+        // keep option images attached to their option objects
+        block(i+1,q,q.options.map(o=>Object.assign({},o)));
+      });
+    }
+    const subj=(list,name,hint)=>{if(!(list||[]).length)return;head(name,hint);list.forEach((q,i)=>block(i+1,q,null));};
+    subj(d.short,"Short Questions","Answer briefly.");
+    subj(d.long,"Long Questions","Answer in detail.");
+  }
+  const n=doc.getNumberOfPages();
+  for(let p=1;p<=n;p++){doc.setPage(p);font(8,"normal");doc.setTextColor(120);
+    doc.text("Page "+p+" of "+n,W/2,H-9,{align:"center"});doc.setTextColor(0);}
+  return doc;
+}
+
+async function exportPdf(kind){
+  if(!lastPaper.length&&!lastShort.length&&!lastLong.length)return;
+  if(!(window.jspdf&&window.jspdf.jsPDF)){alert("The PDF tool did not load. Please reinstall the app.");return;}
+  const data={kind,title:$("title").value.trim(),paper:lastPaper,short:lastShort,long:lastLong};
+  if(pdfHasUnsupported(data)&&!confirm("Some characters (like Urdu) cannot be drawn in the PDF and will show as '?'. Make the PDF anyway?"))return;
+  const base=(data.title||"paper").replace(/[^A-Za-z0-9_-]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40)||"paper";
+  const name=base+(kind==="key"?"-answer-key":"-paper")+".pdf";
+  try{
+    const doc=makePdf(window.jspdf.jsPDF,data);
+    if(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Share&&window.Capacitor.Plugins.Filesystem){
+      const {Filesystem,Share}=window.Capacitor.Plugins;
+      const b64=doc.output("datauristring").split(",")[1];
+      await Filesystem.writeFile({path:name,data:b64,directory:"CACHE"});
+      const {uri}=await Filesystem.getUri({path:name,directory:"CACHE"});
+      await Share.share({title:name,dialogTitle:"Share PDF",files:[uri]});
+    }else{
+      doc.save(name);
+    }
+  }catch(e){
+    if(e&&/cancel/i.test(String(e.message||e)))return;
+    alert("Could not make or share the PDF: "+(e&&e.message?e.message:e));
+  }
+}
 $("copy").onclick=copyText;
+$("pdfPaper").onclick=()=>exportPdf("paper");
+$("pdfKey").onclick=()=>exportPdf("key");
+if(window.Capacitor){$("pdfPaper").textContent="Share paper PDF";$("pdfKey").textContent="Share answer key PDF";}
 $("reset").onclick=()=>{if(confirm("Delete all questions and start over?")){
   qs=Array.from({length:MIN},blankQ);shortQs=[blankS()];longQs=[blankS()];tab="mcq";title="";$("title").value="";$("errors").innerHTML="";render();}};
 
